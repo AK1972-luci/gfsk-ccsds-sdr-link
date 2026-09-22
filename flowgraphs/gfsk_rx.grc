@@ -1,0 +1,719 @@
+options:
+  parameters:
+    author: 'AK '
+    catch_exceptions: 'True'
+    category: Custom
+    cmake_opt: ''
+    comment: ''
+    copyright: ''
+    description: 'GFSK Receiver for HackRF — 9600 baud, h=1.5'
+    gen_cmake: 'On'
+    gen_linking: dynamic
+    generate_options: qt_gui
+    hier_block_src_path: '.:'
+    id: gfsk_rx
+    max_nouts: '0'
+    output_language: python
+    placement: (0,0)
+    qt_qss_theme: ''
+    realtime_scheduling: '1'
+    run: 'True'
+    run_command: '{python} -u {filename}'
+    run_options: prompt
+    sizing_mode: fixed
+    thread_safe_setters: ''
+    title: GFSK Receiver - HackRF - 9600 baud
+    window_size: (1280,1024)
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [8, 8]
+    rotation: 0
+    state: enabled
+
+blocks:
+- name: import_0
+  id: import
+  parameters:
+    alias: ''
+    comment: ''
+    imports: import math
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [8, 108]
+    rotation: 0
+    state: enabled
+
+# ===================== VARIABLES =====================
+- name: samp_rate
+  id: variable
+  parameters:
+    comment: 'HackRF sample rate'
+    value: '2400000'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [208, 12.0]
+    rotation: 0
+    state: enabled
+- name: baud_rate
+  id: variable
+  parameters:
+    comment: 'Symbol rate'
+    value: '9600'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [320, 12.0]
+    rotation: 0
+    state: enabled
+- name: sps
+  id: variable
+  parameters:
+    comment: 'Samples per symbol after decimation = 480000/9600 = 50'
+    value: '50'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [432, 12.0]
+    rotation: 0
+    state: enabled
+- name: center_freq
+  id: variable
+  parameters:
+    comment: 'Offset 100kHz from TX to avoid HackRF DC spike'
+    value: '433.1e6'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [560, 12.0]
+    rotation: 0
+    state: enabled
+- name: fsk_deviation
+  id: variable
+  parameters:
+    comment: 'h=0.6 → fd = 0.6*9600/2 = 2880 Hz'
+    value: '2880'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [680, 12.0]
+    rotation: 0
+    state: enabled
+- name: decim
+  id: variable
+  parameters:
+    comment: 'LPF decimation: 2400000/5 = 480000'
+    value: '5'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [800, 12.0]
+    rotation: 0
+    state: enabled
+- name: audio_rate
+  id: variable
+  parameters:
+    comment: 'Post-decimation rate'
+    value: samp_rate / decim
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [900, 12.0]
+    rotation: 0
+    state: enabled
+- name: encoded_frame_bits
+  id: variable
+  parameters:
+    comment: '510 packed bytes = 4080 bits'
+    value: '4080'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [208, 76.0]
+    rotation: 0
+    state: enabled
+- name: rx_gain
+  id: variable_qtgui_range
+  parameters:
+    comment: ''
+    gui_hint: '[0,0,1,1]'
+    label: 'RF Gain (dB)'
+    min_len: '200'
+    orient: QtCore.Qt.Horizontal
+    rangeType: float
+    start: '0'
+    step: '14'
+    stop: '62'
+    value: '42'
+    widget: counter_slider
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [320, 76.0]
+    rotation: 0
+    state: enabled
+- name: if_gain
+  id: variable_qtgui_range
+  parameters:
+    comment: ''
+    gui_hint: '[0,1,1,1]'
+    label: 'IF Gain (dB)'
+    min_len: '200'
+    orient: QtCore.Qt.Horizontal
+    rangeType: float
+    start: '0'
+    step: '8'
+    stop: '40'
+    value: '32'
+    widget: counter_slider
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [480, 76.0]
+    rotation: 0
+    state: enabled
+- name: bb_gain
+  id: variable_qtgui_range
+  parameters:
+    comment: ''
+    gui_hint: '[0,2,1,1]'
+    label: 'BB Gain (dB)'
+    min_len: '200'
+    orient: QtCore.Qt.Horizontal
+    rangeType: float
+    start: '0'
+    step: '2'
+    stop: '62'
+    value: '30'
+    widget: counter_slider
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [640, 76.0]
+    rotation: 0
+    state: enabled
+
+# ===================== HACKRF SOURCE =====================
+- name: osmosdr_source_0
+  id: osmosdr_source
+  parameters:
+    affinity: ''
+    alias: ''
+    ant0: ''
+    args: '""'
+    bb_gain0: bb_gain
+    bw0: '0'
+    center_freq0: center_freq
+    comment: 'HackRF RX'
+    corr0: '0'
+    dc_offset_mode0: '2'
+    freq0: center_freq
+    gain0: rx_gain
+    gain_mode0: 'False'
+    if_gain0: if_gain
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    nchan: '1'
+    sample_rate: samp_rate
+    type: fc32
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [24, 220.0]
+    rotation: 0
+    state: enabled
+
+# ===================== FREQUENCY SHIFT (move signal from -100kHz to 0) =====================
+- name: blocks_rotator_cc_0
+  id: blocks_rotator_cc
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: 'Shift signal from -100kHz to baseband — avoids HackRF DC spike'
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    phase_inc: 2*math.pi*100000/samp_rate
+    tag_inc_update: 'False'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [320, 240.0]
+    rotation: 0
+    state: enabled
+
+# ===================== LOW PASS FILTER + DECIMATE =====================
+- name: low_pass_filter_0
+  id: low_pass_filter
+  parameters:
+    affinity: ''
+    alias: ''
+    beta: '6.76'
+    comment: 'LPF + decimate 2.4M → 480k. Signal is at 0Hz after rotator.'
+    cutoff_freq: '50000'
+    decim: decim
+    gain: '1'
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    samp_rate: samp_rate
+    type: fir_filter_ccf
+    width: '15000'
+    win: window.WIN_HAMMING
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [320, 220.0]
+    rotation: 0
+    state: enabled
+
+# ===================== QUADRATURE DEMOD =====================
+- name: analog_quadrature_demod_cf_0
+  id: analog_quadrature_demod_cf
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: 'FM discriminator — gain = audio_rate/(2*pi*fd)'
+    gain: audio_rate/(2*math.pi*fsk_deviation)
+    maxoutbuf: '0'
+    minoutbuf: '0'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [600, 240.0]
+    rotation: 0
+    state: enabled
+
+# ===================== DC BLOCKER =====================
+- name: dc_blocker_xx_0
+  id: dc_blocker_xx
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: 'Remove frequency offset — averages over many symbols'
+    length: '5000'
+    long_form: 'True'
+    type: ff
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [840, 236.0]
+    rotation: 0
+    state: enabled
+
+# ===================== SYMBOL SYNC =====================
+- name: digital_symbol_sync_xx_0
+  id: digital_symbol_sync_xx
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: 'Mueller-Muller clock recovery — 9600 baud, sps=50'
+    constellation: digital.constellation_bpsk().base()
+    damping: '1.0'
+    loop_bw: '0.015'
+    max_dev: '0.5'
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    nfilters: '128'
+    osps: '1'
+    pfb_mf_taps: '[]'
+    resamp_type: digital.IR_MMSE_8TAP
+    sps: sps
+    sub_type: '"float_to_float"'
+    ted_gain: '1.0'
+    ted_type: digital.TED_MUELLER_AND_MULLER
+    type: ff
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [200, 380.0]
+    rotation: 0
+    state: enabled
+
+# ===================== FRAME SYNC =====================
+- name: epy_block_frame_sync
+  id: epy_block
+  parameters:
+    _source_code: "import numpy as np\nimport sys\nfrom gnuradio import gr\n\nclass frame_sync(gr.basic_block):\n\
+      \    \"\"\"Finds ASM 0xD87112BD — outputs frames to queue, drains to output.\"\
+      \"\"\n    def __init__(self, frame_nbits=4080, threshold=10):\n        gr.basic_block.__init__(self,\n\
+      \            name='Frame Sync',\n            in_sig=[np.float32],\n          \
+      \  out_sig=[np.float32])\n        asm_str = '11011000011100010001001010111101'\n\
+      \        self.asm_bits = np.array([int(b) for b in asm_str], dtype=np.uint8)\n\
+      \        self.asm_inv = 1 - self.asm_bits\n        self.asm_len = 32\n       \
+      \ self.frame_nbits = frame_nbits\n        self.threshold = threshold\n       \
+      \ self.packet_len = self.asm_len + self.frame_nbits\n        self.inbuf = np.array([],\
+      \ dtype=np.float32)\n        self.outqueue = np.array([], dtype=np.float32)\n\
+      \        self.frames_found = 0\n        self.log = open('C:/gfsk/frame_sync_log.txt',\
+      \ 'w')\n        self.log.write('Frame sync v2 started\\n')\n        self.log.flush()\n\
+      \n    def forecast(self, noutput_items, ninputs):\n        if len(self.outqueue)\
+      \ > 0:\n            return [0]\n        return [self.packet_len]\n\n    def general_work(self,\
+      \ input_items, output_items):\n        inp = input_items[0]\n        out = output_items[0]\n\
+      \        self.inbuf = np.concatenate([self.inbuf, inp])\n        self.consume(0,\
+      \ len(inp))\n        if len(self.inbuf) > 500000:\n            self.inbuf = self.inbuf[-self.packet_len*4:]\n\
+      \        while len(self.inbuf) >= self.packet_len:\n            hard = (self.inbuf[:self.asm_len]\
+      \ > 0).astype(np.uint8)\n            score_n = int(np.sum(hard == self.asm_bits))\n\
+      \            score_i = int(np.sum(hard == self.asm_inv))\n            if score_n\
+      \ >= self.asm_len - self.threshold:\n                frame = self.inbuf[self.asm_len:self.asm_len+self.frame_nbits].copy()\n\
+      \                self.outqueue = np.concatenate([self.outqueue, frame])\n    \
+      \            self.inbuf = self.inbuf[self.packet_len:]\n                self.frames_found\
+      \ += 1\n                self.log.write(f'FOUND #{self.frames_found} normal score={score_n}\
+      \ outq={len(self.outqueue)}\\n')\n                self.log.flush()\n         \
+      \   elif score_i >= self.asm_len - self.threshold:\n                frame = -self.inbuf[self.asm_len:self.asm_len+self.frame_nbits].copy()\n\
+      \                self.outqueue = np.concatenate([self.outqueue, frame])\n    \
+      \            self.inbuf = self.inbuf[self.packet_len:]\n                self.frames_found\
+      \ += 1\n                self.log.write(f'FOUND #{self.frames_found} inverted\
+      \ score={score_i} outq={len(self.outqueue)}\\n')\n                self.log.flush()\n\
+      \            else:\n                self.inbuf = self.inbuf[1:]\n            \
+      \    break\n        n_out = min(len(self.outqueue), len(out))\n        if n_out\
+      \ > 0:\n            out[:n_out] = self.outqueue[:n_out]\n            self.outqueue\
+      \ = self.outqueue[n_out:]\n        return int(n_out)\n"
+    affinity: ''
+    alias: ''
+    comment: 'Finds ASM 0xD87112BD, threshold=10 bit errors allowed'
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    frame_nbits: encoded_frame_bits
+    threshold: '10'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [520, 380.0]
+    rotation: 0
+    state: enabled
+
+# ===================== VITERBI DECODER =====================
+- name: fec_decode_ccsds_27_fb_0
+  id: fec_decode_ccsds_27_fb
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: 'Viterbi decoder — 4080 soft bits → 255 bytes'
+    maxoutbuf: '0'
+    minoutbuf: '0'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [800, 392.0]
+    rotation: 0
+    state: enabled
+
+# ===================== RS DECODER =====================
+- name: epy_block_rs_decode
+  id: epy_block
+  parameters:
+    _source_code: "import numpy as np\nfrom gnuradio import gr\n\nclass rs_decode(gr.basic_block):\n\
+      \    \"\"\"RS(255,223) decoder. Skips 4 tail bytes, extracts 223 data bytes.\"\
+      \"\"\n    def __init__(self):\n        gr.basic_block.__init__(self,\n       \
+      \     name='RS(255,223) Decode',\n            in_sig=[np.uint8],\n          \
+      \  out_sig=[np.uint8])\n        self.rs_total = 255\n        self.rs_data =\
+      \ 223\n        self.tail = 4\n        self.buf = np.array([], dtype=np.uint8)\n\
+      \n    def forecast(self, noutput_items, ninputs):\n        n_frames = max(1,\
+      \ noutput_items // self.rs_data)\n        return [n_frames * self.rs_total]\n\
+      \n    def general_work(self, input_items, output_items):\n        inp = input_items[0]\n\
+      \        out = output_items[0]\n        self.buf = np.concatenate([self.buf,\
+      \ inp])\n        self.consume(0, len(inp))\n        out_idx = 0\n        while\
+      \ len(self.buf) >= self.rs_total and out_idx + self.rs_data <= len(out):\n  \
+      \          frame = self.buf[:self.rs_total]\n            self.buf = self.buf[self.rs_total:]\n\
+      \            out[out_idx:out_idx+self.rs_data] = frame[self.tail:self.tail+self.rs_data]\n\
+      \            out_idx += self.rs_data\n        return out_idx\n"
+    affinity: ''
+    alias: ''
+    comment: 'Strips tail + parity, outputs 223 data bytes per frame'
+    maxoutbuf: '0'
+    minoutbuf: '0'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1040, 392.0]
+    rotation: 0
+    state: enabled
+
+# ===================== RAW BITS FILE (debug — bypasses frame sync) =====================
+- name: blocks_file_sink_1
+  id: blocks_file_sink
+  parameters:
+    affinity: ''
+    alias: ''
+    append: 'False'
+    comment: 'Raw hard bits from symbol sync — for debugging'
+    file: 'gfsk_rx_raw_bits.bin'
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    type: byte
+    unbuffered: 'True'
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [920, 580.0]
+    rotation: 0
+    state: enabled
+
+# ===================== FILE SINK =====================
+- name: blocks_file_sink_0
+  id: blocks_file_sink
+  parameters:
+    affinity: ''
+    alias: ''
+    append: 'False'
+    comment: 'Decoded telemetry output'
+    file: 'gfsk_rx_output.txt'
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    type: byte
+    unbuffered: 'True'
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1040, 480.0]
+    rotation: 0
+    state: enabled
+
+# ===================== VISUALIZATION =====================
+- name: digital_binary_slicer_fb_0
+  id: digital_binary_slicer_fb
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [520, 520.0]
+    rotation: 0
+    state: enabled
+- name: blocks_char_to_float_1
+  id: blocks_char_to_float
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    scale: '1'
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [720, 520.0]
+    rotation: 0
+    state: enabled
+- name: qtgui_freq_sink_x_0
+  id: qtgui_freq_sink_x
+  parameters:
+    affinity: ''
+    alias: ''
+    alpha1: '1.0'
+    autoscale: 'False'
+    average: '1.0'
+    axislabels: 'True'
+    bw: samp_rate
+    color1: '"blue"'
+    comment: ''
+    ctrlpanel: 'True'
+    fc: center_freq
+    fftsize: '4096'
+    freqhalf: 'True'
+    grid: 'True'
+    gui_hint: '[1,0,1,1]'
+    label: Relative Gain
+    label1: 'RX Signal'
+    legend: 'True'
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    name: '"RX Spectrum"'
+    nconnections: '1'
+    norm_window: 'False'
+    showports: 'True'
+    tr_chan: '0'
+    tr_level: '0.0'
+    tr_mode: qtgui.TRIG_MODE_FREE
+    tr_tag: '""'
+    type: complex
+    units: dB
+    update_time: '0.10'
+    width1: '1'
+    wintype: window.WIN_BLACKMAN_hARRIS
+    ymax: '10'
+    ymin: '-140'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [24, 620.0]
+    rotation: 0
+    state: enabled
+- name: qtgui_waterfall_sink_x_0
+  id: qtgui_waterfall_sink_x
+  parameters:
+    affinity: ''
+    alias: ''
+    alpha1: '1.0'
+    axislabels: 'True'
+    bw: samp_rate
+    color1: '0'
+    comment: ''
+    fc: center_freq
+    fftsize: '1024'
+    freqhalf: 'True'
+    grid: 'False'
+    gui_hint: '[2,0,1,1]'
+    int_max: '10'
+    int_min: '-140'
+    label1: ''
+    legend: 'True'
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    name: '"RX Waterfall"'
+    nconnections: '1'
+    showports: 'True'
+    type: complex
+    update_time: '0.10'
+    wintype: window.WIN_BLACKMAN_hARRIS
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [24, 760.0]
+    rotation: 0
+    state: enabled
+- name: qtgui_time_sink_x_0
+  id: qtgui_time_sink_x
+  parameters:
+    affinity: ''
+    alias: ''
+    alpha1: '1.0'
+    autoscale: 'False'
+    axislabels: 'True'
+    color1: '"blue"'
+    comment: ''
+    ctrlpanel: 'False'
+    entags: 'True'
+    grid: 'True'
+    gui_hint: '[1,1,1,1]'
+    label1: 'Demod Bits'
+    legend: 'True'
+    marker1: '-1'
+    name: '"Demodulated Bits"'
+    nconnections: '1'
+    size: '1024'
+    srate: baud_rate
+    stemplot: 'False'
+    style1: '1'
+    tr_chan: '0'
+    tr_delay: '0'
+    tr_level: '0.0'
+    tr_mode: qtgui.TRIG_MODE_FREE
+    tr_slope: qtgui.TRIG_SLOPE_POS
+    tr_tag: '""'
+    type: float
+    update_time: '0.10'
+    width1: '1'
+    ylabel: Amplitude
+    ymax: '2.0'
+    ymin: '-2.0'
+    yunit: '""'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [920, 520.0]
+    rotation: 0
+    state: enabled
+- name: qtgui_time_sink_x_1
+  id: qtgui_time_sink_x
+  parameters:
+    affinity: ''
+    alias: ''
+    alpha1: '1.0'
+    autoscale: 'True'
+    axislabels: 'True'
+    color1: '"red"'
+    comment: 'RAW demod output — should show +-1 square wave'
+    ctrlpanel: 'False'
+    entags: 'True'
+    grid: 'True'
+    gui_hint: '[2,1,1,1]'
+    label1: 'Demod Signal'
+    legend: 'True'
+    marker1: '-1'
+    name: '"Demod Signal (pre-sync)"'
+    nconnections: '1'
+    size: '5000'
+    srate: audio_rate
+    stemplot: 'False'
+    style1: '1'
+    tr_chan: '0'
+    tr_delay: '0'
+    tr_level: '0.0'
+    tr_mode: qtgui.TRIG_MODE_FREE
+    tr_slope: qtgui.TRIG_SLOPE_POS
+    tr_tag: '""'
+    type: float
+    update_time: '0.10'
+    width1: '1'
+    ylabel: Amplitude
+    ymax: '3.0'
+    ymin: '-3.0'
+    yunit: '""'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [920, 650.0]
+    rotation: 0
+    state: enabled
+
+connections:
+# Main signal chain: HackRF → Rotator(+100kHz) → LPF(decim) → Quad Demod → DC Blocker → Symbol Sync → Frame Sync → Decode → File
+- [osmosdr_source_0, '0', blocks_rotator_cc_0, '0']
+- [blocks_rotator_cc_0, '0', low_pass_filter_0, '0']
+- [low_pass_filter_0, '0', analog_quadrature_demod_cf_0, '0']
+- [analog_quadrature_demod_cf_0, '0', dc_blocker_xx_0, '0']
+- [dc_blocker_xx_0, '0', digital_symbol_sync_xx_0, '0']
+- [digital_symbol_sync_xx_0, '0', epy_block_frame_sync, '0']
+- [epy_block_frame_sync, '0', fec_decode_ccsds_27_fb_0, '0']
+- [fec_decode_ccsds_27_fb_0, '0', epy_block_rs_decode, '0']
+- [epy_block_rs_decode, '0', blocks_file_sink_0, '0']
+# Visualization
+- [digital_symbol_sync_xx_0, '0', digital_binary_slicer_fb_0, '0']
+- [digital_binary_slicer_fb_0, '0', blocks_char_to_float_1, '0']
+- [blocks_char_to_float_1, '0', qtgui_time_sink_x_0, '0']
+- [dc_blocker_xx_0, '0', qtgui_time_sink_x_1, '0']
+- [digital_binary_slicer_fb_0, '0', blocks_file_sink_1, '0']
+- [osmosdr_source_0, '0', qtgui_freq_sink_x_0, '0']
+- [osmosdr_source_0, '0', qtgui_waterfall_sink_x_0, '0']
+
+metadata:
+  file_format: 1
+  grc_version: 3.10.12.0
